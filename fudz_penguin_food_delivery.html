@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fudz Penguin 🐧 - Premier Food Delivery</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f2fdf5',
+              100: '#e1fbe8',
+              500: '#315b3c', // Main Dark Green
+              600: '#264a2f',
+              700: '#1b3822',
+            },
+            accent: {
+              500: '#f58220', // Warm Orange
+              600: '#dc6d11',
+            },
+            cream: '#fcfbf7',
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f7f7f2;
+      color: #20251f;
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #315b3c;
+      border-radius: 10px;
+    }
+
+    /* Floating Cart Animation */
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 3s infinite ease-in-out;
+    }
+
+    /* Modal Fade In */
+    .modal-backdrop {
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      transition: all 0.3s ease;
+    }
+
+    /* Hide scrollbar for category horizontal scroll */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20 gap-4">
+        
+        <!-- Logo -->
+        <div onclick="resetFilters()" class="cursor-pointer flex items-center gap-2 group">
+          <span class="text-3xl sm:text-4xl transition-transform group-hover:scale-110">🐧</span>
+          <div>
+            <h1 class="text-2xl font-extrabold text-brand-500 tracking-tight leading-none">
+              Fudz<span class="text-accent-500">Penguin</span>
+            </h1>
+            <p class="text-[10px] text-gray-500 font-semibold tracking-wider uppercase">Food Delivered Fast</p>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="flex-1 max-w-xl mx-2 hidden md:block">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input id="searchInput" type="text" oninput="handleSearch()" placeholder="Search pizza, crispy chicken, milk tea, burgers..." 
+              class="w-full pl-11 pr-4 py-3 bg-gray-100 border-none rounded-full text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all outline-none">
+          </div>
+        </div>
+
+        <!-- User Controls / Auth Buttons -->
+        <div class="flex items-center gap-3">
+          <!-- User Profile Dropdown / Button (When Logged In) -->
+          <div id="userProfileBtn" class="hidden flex items-center gap-3">
+            <button onclick="openProfileModal()" class="flex items-center gap-2 bg-brand-50 hover:bg-brand-100 text-brand-500 px-3.5 py-2 rounded-full border border-brand-200 transition font-bold text-sm">
+              <i class="fa-solid fa-user-gear text-brand-500"></i>
+              <span id="navUserName">Account</span>
+            </button>
+            <button onclick="logout()" title="Sign Out" class="text-gray-400 hover:text-red-500 p-2 text-sm transition">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+          </div>
+
+          <!-- Auth Action Buttons (When Logged Out) -->
+          <div id="authActions" class="flex items-center gap-2">
+            <button onclick="openAuthModal('login')" class="px-4 py-2 text-sm font-bold text-brand-500 hover:bg-brand-50 rounded-full transition">
+              Sign In
+            </button>
+            <button onclick="openAuthModal('register')" class="px-4 py-2 text-sm font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-full shadow-sm transition">
+              Register
+            </button>
+          </div>
+
+          <!-- Orders / Track Link -->
+          <button onclick="openOrderHistoryModal()" class="relative p-2.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition" title="Order History">
+            <i class="fa-solid fa-receipt text-lg"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Mobile Search Input Bar -->
+      <div class="pb-3 md:hidden">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input id="searchInputMobile" type="text" oninput="handleSearchMobile()" placeholder="Search food items..." 
+            class="w-full pl-11 pr-4 py-2.5 bg-gray-100 border-none rounded-full text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none">
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+    <div class="bg-gradient-to-r from-brand-500 via-brand-600 to-emerald-800 rounded-3xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+      
+      <!-- Decorative Background Elements -->
+      <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute right-1/3 -top-10 w-48 h-48 bg-accent-500/20 rounded-full blur-xl pointer-events-none"></div>
+
+      <div class="max-w-xl z-10 text-center md:text-left">
+        <span class="inline-block bg-accent-500 text-white text-xs font-extrabold uppercase px-3 py-1 rounded-full mb-3 tracking-wider shadow-sm">
+          🔥 Exclusive Deal
+        </span>
+        <h2 class="text-2xl sm:text-4xl font-extrabold leading-tight mb-2">
+          Craving Something Delicious? Delivered in 30 Mins!
+        </h2>
+        <p class="text-brand-100 text-sm sm:text-base font-medium mb-6">
+          Use promo code <span class="bg-white/20 px-2 py-0.5 rounded font-mono font-bold text-white border border-white/30">PENGUIN50</span> for ₱50 off your order!
+        </p>
+        <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+          <button onclick="scrollToMenu()" class="bg-accent-500 hover:bg-accent-600 text-white font-bold px-6 py-3 rounded-full shadow-lg hover:shadow-accent-500/30 transition transform hover:-translate-y-0.5">
+            Order Now 🍕
+          </button>
+          <button onclick="openAuthModal('register')" class="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold px-5 py-3 rounded-full border border-white/30 transition">
+            Join & Earn Points
+          </button>
+        </div>
+      </div>
+
+      <!-- Penguin Mascot Display -->
+      <div class="z-10 text-center flex flex-col items-center">
+        <div class="text-7xl sm:text-8xl filter drop-shadow-lg transform transition hover:scale-105 cursor-pointer">
+          🐧🛵
+        </div>
+        <div class="mt-2 bg-black/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-semibold text-brand-100 border border-white/10">
+          Fast • Fresh • Penguin Express
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 pb-24">
+    
+    <!-- Category Bar -->
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <span>Explore Cuisines</span>
+      </h2>
+      <button onclick="resetFilters()" class="text-xs font-bold text-brand-500 hover:text-brand-700">Clear Filters</button>
+    </div>
+
+    <!-- Category Pill Buttons -->
+    <div id="categoryContainer" class="flex gap-3 overflow-x-auto no-scrollbar pb-3 mb-8">
+      <!-- Generated dynamically in JS -->
+    </div>
+
+    <!-- Popular Brands Carousel/Grid -->
+    <div class="mb-10">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Partner Restaurants</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div onclick="filterByBrand('BonChon')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition cursor-pointer group">
+          <div class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center font-extrabold text-xl group-hover:scale-110 transition">🍗</div>
+          <div>
+            <h4 class="font-bold text-sm text-gray-800">BonChon</h4>
+            <p class="text-xs text-gray-400">Korean Chicken</p>
+          </div>
+        </div>
+        <div onclick="filterByBrand('Pizza Hub')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition cursor-pointer group">
+          <div class="w-12 h-12 rounded-full bg-yellow-500 text-white flex items-center justify-center font-extrabold text-xl group-hover:scale-110 transition">🍕</div>
+          <div>
+            <h4 class="font-bold text-sm text-gray-800">Pizza Hub</h4>
+            <p class="text-xs text-gray-400">Italian & Cheesy</p>
+          </div>
+        </div>
+        <div onclick="filterByBrand('Burger Shack')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition cursor-pointer group">
+          <div class="w-12 h-12 rounded-full bg-stone-900 text-white flex items-center justify-center font-extrabold text-xl group-hover:scale-110 transition">🍔</div>
+          <div>
+            <h4 class="font-bold text-sm text-gray-800">Burger Shack</h4>
+            <p class="text-xs text-gray-400">Gourmet Burgers</p>
+          </div>
+        </div>
+        <div onclick="filterByBrand('Asian Bowl')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 hover:shadow-md transition cursor-pointer group">
+          <div class="w-12 h-12 rounded-full bg-emerald-700 text-white flex items-center justify-center font-extrabold text-xl group-hover:scale-110 transition">🍜</div>
+          <div>
+            <h4 class="font-bold text-sm text-gray-800">Asian Bowl</h4>
+            <p class="text-xs text-gray-400">Ramen & Dumplings</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products Header & Sorting -->
+    <div id="menuSection" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pt-4 border-t border-gray-200">
+      <div>
+        <h3 id="menuTitle" class="text-2xl font-extrabold text-gray-900">All Food Items</h3>
+        <p id="menuCount" class="text-xs text-gray-500 font-medium">Showing all delicious options</p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <label for="sortSelect" class="text-xs font-bold text-gray-500">Sort By:</label>
+        <select id="sortSelect" onchange="sortProducts()" class="bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="featured">Featured / Popular</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+          <option value="rating">Highest Rated</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- Products generated dynamically via JS -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-16">
+      <div class="text-6xl mb-3">🔍</div>
+      <h3 class="text-lg font-bold text-gray-800">No Food Items Found</h3>
+      <p class="text-sm text-gray-500 max-w-sm mx-auto mt-1">Try searching for something else or reset your category filters.</p>
+      <button onclick="resetFilters()" class="mt-4 bg-brand-500 text-white font-bold px-5 py-2 rounded-full text-xs shadow">Reset Search</button>
+    </div>
+
+  </main>
+
+  <div class="fixed bottom-6 right-6 z-30">
+    <button onclick="toggleCartDrawer(true)" class="animate-pulse-subtle bg-accent-500 hover:bg-accent-600 text-white p-4 sm:px-6 sm:py-4 rounded-full shadow-2xl flex items-center gap-3 transition transform hover:scale-105 active:scale-95 group">
+      <div class="relative">
+        <i class="fa-solid fa-basket-shopping text-2xl"></i>
+        <span id="cartBadge" class="absolute -top-3 -right-3 bg-red-600 text-white text-xs font-extrabold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
+      </div>
+      <span class="hidden sm:inline font-bold text-sm">View Cart</span>
+      <span id="cartTotalPreview" class="bg-black/20 px-2.5 py-1 rounded-full text-xs font-extrabold">₱0.00</span>
+    </button>
+  </div>
+
+  <div id="cartDrawer" class="fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 opacity-0">
+    <!-- Backdrop -->
+    <div onclick="toggleCartDrawer(false)" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+    <!-- Drawer Panel -->
+    <div class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col transition-transform duration-300 translate-x-full pointer-events-auto">
+      
+      <!-- Header -->
+      <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-brand-500 text-white">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-cart-shopping text-xl"></i>
+          <h2 class="text-lg font-extrabold">Your Food Cart</h2>
+        </div>
+        <button onclick="toggleCartDrawer(false)" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Cart Items List -->
+      <div id="cartItemsList" class="flex-1 overflow-y-auto p-5 space-y-4">
+        <!-- Dynamic JS Content -->
+      </div>
+
+      <!-- Cart Summary Footer -->
+      <div id="cartFooter" class="p-5 border-t border-gray-100 bg-gray-50 space-y-3">
+        
+        <!-- Driver Tip Selector -->
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">Support Rider Tip ❤️</label>
+          <div id="tipOptions" class="grid grid-cols-4 gap-2">
+            <button onclick="setTip(0)" class="tip-btn py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white text-gray-700">₱0</button>
+            <button onclick="setTip(15)" class="tip-btn py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white text-gray-700">₱15</button>
+            <button onclick="setTip(30)" class="tip-btn py-1.5 text-xs font-bold rounded-lg border border-brand-500 bg-brand-50 text-brand-600">₱30</button>
+            <button onclick="setTip(50)" class="tip-btn py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white text-gray-700">₱50</button>
+          </div>
+        </div>
+
+        <!-- Promo Code Input -->
+        <div class="flex gap-2">
+          <input id="promoInput" type="text" placeholder="Promo code (e.g. PENGUIN50)" class="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium uppercase outline-none focus:ring-1 focus:ring-brand-500">
+          <button onclick="applyPromoCode()" class="bg-gray-800 hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-xl transition">Apply</button>
+        </div>
+
+        <!-- Price Breakdown -->
+        <div class="space-y-1.5 pt-2 text-xs font-semibold text-gray-600">
+          <div class="flex justify-between">
+            <span>Subtotal</span>
+            <span id="summarySubtotal" class="font-bold text-gray-800">₱0.00</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Delivery Fee</span>
+            <span id="summaryDelivery" class="font-bold text-gray-800">₱49.00</span>
+          </div>
+          <div id="discountRow" class="flex justify-between text-emerald-600 hidden">
+            <span>Promo Discount</span>
+            <span id="summaryDiscount" class="font-bold">-₱0.00</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Rider Tip</span>
+            <span id="summaryTip" class="font-bold text-gray-800">₱30.00</span>
+          </div>
+          <div class="flex justify-between text-base font-extrabold text-gray-900 pt-2 border-t border-gray-200">
+            <span>Total Payable</span>
+            <span id="summaryGrandTotal" class="text-brand-500">₱0.00</span>
+          </div>
+        </div>
+
+        <!-- Checkout Button -->
+        <button onclick="proceedToCheckout()" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-extrabold py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+          <span>Proceed to Checkout</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="itemModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeItemModal()" class="absolute inset-0 modal-backdrop"></div>
+    
+    <div class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden z-10 max-h-[90vh] flex flex-col">
+      <button onclick="closeItemModal()" class="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Food Image -->
+      <div class="relative h-56 sm:h-64 w-full bg-gray-100">
+        <img id="modalItemImg" src="" alt="Food Image" class="w-full h-full object-cover">
+        <div id="modalItemBadge" class="absolute bottom-3 left-3 bg-brand-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+          Bestseller
+        </div>
+      </div>
+
+      <!-- Content & Options -->
+      <div class="p-6 overflow-y-auto flex-1 space-y-5">
+        <div>
+          <div class="flex justify-between items-start gap-2">
+            <h3 id="modalItemName" class="text-xl font-extrabold text-gray-900">Food Name</h3>
+            <span id="modalItemBasePrice" class="text-lg font-black text-brand-500">₱0.00</span>
+          </div>
+          <p id="modalItemDesc" class="text-xs text-gray-500 mt-1">Detailed description of ingredients and taste profile.</p>
+        </div>
+
+        <!-- Size Selection -->
+        <div>
+          <label class="block text-xs font-extrabold uppercase tracking-wider text-gray-700 mb-2">Choose Size</label>
+          <div class="grid grid-cols-3 gap-2" id="sizeOptionsContainer">
+            <!-- JS dynamic buttons -->
+          </div>
+        </div>
+
+        <!-- Optional Add-ons -->
+        <div>
+          <label class="block text-xs font-extrabold uppercase tracking-wider text-gray-700 mb-2">Select Add-ons (Optional)</label>
+          <div class="space-y-2" id="addonsContainer">
+            <!-- JS dynamic checkboxes -->
+          </div>
+        </div>
+
+        <!-- Custom Notes -->
+        <div>
+          <label for="itemNotesInput" class="block text-xs font-extrabold uppercase tracking-wider text-gray-700 mb-1">Special Instructions</label>
+          <input id="itemNotesInput" type="text" placeholder="e.g. Less spicy, no onions, extra utensils" class="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+
+        <!-- Quantity & Add Button -->
+        <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-4">
+          <div class="flex items-center border border-gray-200 rounded-full p-1 bg-gray-50">
+            <button onclick="adjustModalQty(-1)" class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center font-bold text-gray-700 hover:bg-gray-100">-</button>
+            <span id="modalItemQty" class="w-8 text-center font-extrabold text-sm">1</span>
+            <button onclick="adjustModalQty(1)" class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center font-bold text-gray-700 hover:bg-gray-100">+</button>
+          </div>
+
+          <button onclick="confirmAddToCart()" class="flex-1 bg-accent-500 hover:bg-accent-600 text-white font-extrabold py-3.5 px-4 rounded-full shadow-lg transition flex items-center justify-between">
+            <span>Add to Cart</span>
+            <span id="modalCalculatedTotal" class="bg-black/20 px-3 py-0.5 rounded-full text-xs font-extrabold">₱0.00</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="checkoutModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeCheckoutModal()" class="absolute inset-0 modal-backdrop"></div>
+
+    <div class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden z-10 max-h-[90vh] flex flex-col">
+      <div class="p-5 bg-brand-500 text-white flex justify-between items-center">
+        <h3 class="text-lg font-extrabold flex items-center gap-2">
+          <i class="fa-solid fa-truck-fast"></i>
+          <span>Finalize Delivery & Payment</span>
+        </h3>
+        <button onclick="closeCheckoutModal()" class="text-white hover:text-gray-200">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1 space-y-5">
+        
+        <!-- Delivery Address Details -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-500">1. Delivery Address</h4>
+          
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Full Address *</label>
+            <textarea id="checkoutAddress" rows="2" placeholder="House/Unit #, Street, Barangay, City, Landmark" class="w-full p-3 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-1 focus:ring-brand-500 font-medium"></textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Contact Phone *</label>
+              <input id="checkoutPhone" type="tel" placeholder="0917XXXXXXX" class="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-1 focus:ring-brand-500 font-medium">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Delivery Note</label>
+              <input id="checkoutNotes" type="text" placeholder="Gate color, leave at door" class="w-full p-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-1 focus:ring-brand-500 font-medium">
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Method Selection -->
+        <div class="space-y-3 pt-2 border-t border-gray-100">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-gray-500">2. Payment Method</h4>
+          
+          <div class="grid grid-cols-2 gap-2" id="paymentMethodsContainer">
+            <label class="cursor-pointer border-2 border-brand-500 bg-brand-50 p-3 rounded-2xl flex items-center gap-3 transition">
+              <input type="radio" name="paymentMethod" value="GCash" checked class="accent-brand-500">
+              <div>
+                <p class="font-extrabold text-xs text-gray-800">GCash</p>
+                <p class="text-[10px] text-gray-500">E-Wallet</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer border-2 border-gray-200 p-3 rounded-2xl flex items-center gap-3 transition hover:border-gray-300">
+              <input type="radio" name="paymentMethod" value="Cash on Delivery" class="accent-brand-500">
+              <div>
+                <p class="font-extrabold text-xs text-gray-800">Cash on Delivery</p>
+                <p class="text-[10px] text-gray-500">Pay upon arrival</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer border-2 border-gray-200 p-3 rounded-2xl flex items-center gap-3 transition hover:border-gray-300">
+              <input type="radio" name="paymentMethod" value="Maya" class="accent-brand-500">
+              <div>
+                <p class="font-extrabold text-xs text-gray-800">Maya</p>
+                <p class="text-[10px] text-gray-500">E-Wallet</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer border-2 border-gray-200 p-3 rounded-2xl flex items-center gap-3 transition hover:border-gray-300">
+              <input type="radio" name="paymentMethod" value="Credit/Debit Card" class="accent-brand-500">
+              <div>
+                <p class="font-extrabold text-xs text-gray-800">Card</p>
+                <p class="text-[10px] text-gray-500">Visa / Mastercard</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Order Summary Overview -->
+        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs space-y-1">
+          <div class="flex justify-between text-gray-600">
+            <span>Items Total:</span>
+            <span id="checkoutSubtotal" class="font-bold">₱0.00</span>
+          </div>
+          <div class="flex justify-between text-gray-600">
+            <span>Delivery & Tip:</span>
+            <span id="checkoutFees" class="font-bold">₱79.00</span>
+          </div>
+          <div class="flex justify-between text-base font-extrabold text-brand-600 pt-2 border-t border-gray-200">
+            <span>Total Amount:</span>
+            <span id="checkoutGrandTotal">₱0.00</span>
+          </div>
+        </div>
+
+        <button onclick="placeOrder()" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-extrabold py-4 rounded-2xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check-circle"></i>
+          <span>Place Order Now</span>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="trackerModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeTrackerModal()" class="absolute inset-0 modal-backdrop"></div>
+
+    <div class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden z-10 p-6 space-y-6">
+      
+      <div class="text-center">
+        <span class="text-4xl">🛵</span>
+        <h3 class="text-xl font-extrabold text-gray-900 mt-2">Live Order Tracker</h3>
+        <p class="text-xs text-gray-500">Estimated Delivery: <span id="trackerEta" class="font-bold text-brand-500">25 - 30 Mins</span></p>
+        <p class="text-[11px] text-gray-400 font-mono mt-0.5">Order ID: #<span id="trackerOrderId">PENG-0000</span></p>
+      </div>
+
+      <!-- Step Timeline Visualizer -->
+      <div class="relative pl-6 border-l-2 border-brand-200 space-y-6 my-4">
+        
+        <!-- Step 1 -->
+        <div id="step1" class="relative">
+          <span class="absolute -left-[31px] top-0 w-6 h-6 rounded-full bg-brand-500 text-white text-xs flex items-center justify-center shadow">✓</span>
+          <h4 class="font-extrabold text-xs text-gray-800">Order Placed</h4>
+          <p class="text-[11px] text-gray-400">Restaurant has received your order.</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div id="step2" class="relative">
+          <span class="step-icon absolute -left-[31px] top-0 w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs flex items-center justify-center">2</span>
+          <h4 class="font-extrabold text-xs text-gray-800">Kitchen Preparing</h4>
+          <p class="text-[11px] text-gray-400">Chefs are cooking your delicious food.</p>
+        </div>
+
+        <!-- Step 3 -->
+        <div id="step3" class="relative">
+          <span class="step-icon absolute -left-[31px] top-0 w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs flex items-center justify-center">3</span>
+          <h4 class="font-extrabold text-xs text-gray-800">Rider Picked Up</h4>
+          <p class="text-[11px] text-gray-400">Penguin driver is holding your hot meal.</p>
+        </div>
+
+        <!-- Step 4 -->
+        <div id="step4" class="relative">
+          <span class="step-icon absolute -left-[31px] top-0 w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs flex items-center justify-center">4</span>
+          <h4 class="font-extrabold text-xs text-gray-800">On the Way</h4>
+          <p class="text-[11px] text-gray-400">Driver is navigating to your address.</p>
+        </div>
+
+        <!-- Step 5 -->
+        <div id="step5" class="relative">
+          <span class="step-icon absolute -left-[31px] top-0 w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs flex items-center justify-center">5</span>
+          <h4 class="font-extrabold text-xs text-gray-800">Delivered</h4>
+          <p class="text-[11px] text-gray-400">Enjoy your meal! Thank you!</p>
+        </div>
+
+      </div>
+
+      <div class="bg-brand-50 p-3 rounded-2xl flex items-center gap-3">
+        <div class="text-2xl">🐧</div>
+        <div class="text-xs">
+          <p class="font-bold text-brand-700">Driver: Kuya Mark (Express Rider)</p>
+          <p class="text-brand-600 text-[11px]">Plate: MC-2026 • Honda Click 125i</p>
+        </div>
+      </div>
+
+      <button onclick="closeTrackerModal()" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-2xl text-xs transition">
+        Close Tracker Window
+      </button>
+
+    </div>
+  </div>
+
+  <div id="authModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeAuthModal()" class="absolute inset-0 modal-backdrop"></div>
+
+    <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden z-10 p-6 sm:p-8">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="text-center mb-6">
+        <span class="text-4xl">🐧</span>
+        <h3 id="authTitle" class="text-xl font-extrabold text-gray-900 mt-1">Welcome to Fudz Penguin</h3>
+        <p id="authSubtitle" class="text-xs text-gray-500">Sign in to earn Penguin loyalty points and fast checkout.</p>
+      </div>
+
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        
+        <div id="nameFieldGroup" class="hidden">
+          <label class="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
+          <input id="authName" type="text" placeholder="e.g. Juan Dela Cruz" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+          <input id="authEmail" type="email" required placeholder="you@example.com" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Password</label>
+          <input id="authPassword" type="password" required placeholder="••••••••" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+
+        <div id="phoneFieldGroup" class="hidden">
+          <label class="block text-xs font-bold text-gray-700 mb-1">Phone Number</label>
+          <input id="authPhone" type="tel" placeholder="0917XXXXXXX" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+
+        <button id="authSubmitBtn" type="submit" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-extrabold py-3.5 rounded-2xl shadow-md transition text-xs">
+          Sign In
+        </button>
+      </form>
+
+      <div class="text-center mt-4 pt-4 border-t border-gray-100 text-xs">
+        <span id="authSwitchPrompt" class="text-gray-500">Don't have an account?</span>
+        <button onclick="toggleAuthMode()" id="authSwitchBtn" class="font-extrabold text-brand-600 ml-1 hover:underline">Register Now</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="profileModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeProfileModal()" class="absolute inset-0 modal-backdrop"></div>
+
+    <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden z-10 p-6 space-y-5">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+        <h3 class="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+          <span>🐧 Penguin Member Profile</span>
+        </h3>
+        <button onclick="closeProfileModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Loyalty Reward Points Card -->
+      <div class="bg-gradient-to-r from-brand-500 to-emerald-700 text-white p-4 rounded-2xl shadow flex items-center justify-between">
+        <div>
+          <p class="text-xs text-brand-100 uppercase font-extrabold tracking-wider">Penguin Points</p>
+          <h4 id="profilePoints" class="text-3xl font-black mt-0.5">150 PTS</h4>
+          <p class="text-[10px] text-brand-100 mt-1">Redeem free drinks & delivery discounts!</p>
+        </div>
+        <div class="text-4xl">👑</div>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-gray-500 font-bold">Saved Name:</label>
+          <p id="profileNameDisplay" class="font-extrabold text-gray-800 text-sm">Juan Dela Cruz</p>
+        </div>
+        <div>
+          <label class="block text-gray-500 font-bold">Email Address:</label>
+          <p id="profileEmailDisplay" class="font-bold text-gray-800">juan@example.com</p>
+        </div>
+        <div>
+          <label class="block text-gray-500 font-bold mb-1">Default Delivery Address:</label>
+          <textarea id="profileAddressInput" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium outline-none focus:ring-1 focus:ring-brand-500" placeholder="Set default delivery location"></textarea>
+        </div>
+      </div>
+
+      <button onclick="saveProfileAddress()" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-extrabold py-3 rounded-2xl text-xs transition">
+        Save Profile Details
+      </button>
+    </div>
+  </div>
+
+  <div id="orderHistoryModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeOrderHistoryModal()" class="absolute inset-0 modal-backdrop"></div>
+
+    <div class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden z-10 max-h-[85vh] flex flex-col">
+      <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-900 text-white">
+        <h3 class="text-lg font-extrabold flex items-center gap-2">
+          <i class="fa-solid fa-receipt"></i>
+          <span>Your Past Orders</span>
+        </h3>
+        <button onclick="closeOrderHistoryModal()" class="text-white hover:text-gray-300">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="historyList" class="p-5 overflow-y-auto flex-1 space-y-4">
+        <!-- JS Rendered Past Orders -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-brand-700 text-white py-12 mt-auto border-t border-brand-600">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-3xl">🐧</span>
+          <h3 class="text-xl font-extrabold text-white">Fudz<span class="text-accent-500">Penguin</span></h3>
+        </div>
+        <p class="text-xs text-brand-100 leading-relaxed">
+          Delivering fresh, delicious food from top restaurants straight to your doorstep across the Philippines.
+        </p>
+      </div>
+
+      <div>
+        <h4 class="font-extrabold text-sm mb-3 text-white">Quick Links</h4>
+        <ul class="space-y-2 text-xs text-brand-100">
+          <li><a href="#" onclick="filterByCategory('Pizza')" class="hover:text-white transition">Pizza & Italian</a></li>
+          <li><a href="#" onclick="filterByCategory('Chicken')" class="hover:text-white transition">Crispy Chicken</a></li>
+          <li><a href="#" onclick="filterByCategory('Asian')" class="hover:text-white transition">Asian & Ramen</a></li>
+          <li><a href="#" onclick="filterByCategory('Burgers')" class="hover:text-white transition">Burgers & Wings</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-extrabold text-sm mb-3 text-white">Customer Support</h4>
+        <ul class="space-y-2 text-xs text-brand-100">
+          <li><i class="fa-solid fa-phone mr-1"></i> (02) 8888-PENGUIN</li>
+          <li><i class="fa-solid fa-envelope mr-1"></i> support@fudzpenguin.ph</li>
+          <li><i class="fa-solid fa-location-dot mr-1"></i> Manila, Philippines</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-extrabold text-sm mb-3 text-white">Payment Options</h4>
+        <div class="flex flex-wrap gap-2 text-xl text-brand-100">
+          <span class="bg-white/10 px-2 py-1 rounded text-xs font-bold">GCash</span>
+          <span class="bg-white/10 px-2 py-1 rounded text-xs font-bold">Maya</span>
+          <span class="bg-white/10 px-2 py-1 rounded text-xs font-bold">COD</span>
+          <span class="bg-white/10 px-2 py-1 rounded text-xs font-bold">Visa / MC</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 mt-8 border-t border-brand-600 text-center text-xs text-brand-200">
+      © 2026 Fudz Penguin Philippines Inc. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    // Expanded Database of 32 Food Items
+    const foodProducts = [
+      // PIZZA
+      { id: 1, name: "Classic Pepperoni Supreme", price: 349, cat: "Pizza", brand: "Pizza Hub", tag: "Bestseller", rating: 4.9, img: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=700&q=80", desc: "Loaded with premium mozzarella cheese, pepperoni slices, and rich Italian tomato sauce." },
+      { id: 2, name: "Quattro Formaggi (4 Cheese)", price: 389, cat: "Pizza", brand: "Pizza Hub", tag: "Vegetarian", rating: 4.8, img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=700&q=80", desc: "Blend of Mozzarella, Parmesan, Gorgonzola, and Cheddar melted to golden perfection." },
+      { id: 3, name: "Hawaiian Overload Pizza", price: 329, cat: "Pizza", brand: "Pizza Hub", tag: "Popular", rating: 4.7, img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=700&q=80", desc: "Sweet juicy pineapples, savory ham slices, and double melted mozzarella." },
+      { id: 4, name: "BBQ Smoked Chicken Pizza", price: 369, cat: "Pizza", brand: "Pizza Hub", tag: "Chef Choice", rating: 4.8, img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=700&q=80", desc: "Tender grilled chicken strips drizzled with smoky barbecue sauce and red onions." },
+
+      // CHICKEN
+      { id: 5, name: "BonChon Soy Garlic Wings (6pcs)", price: 289, cat: "Chicken", brand: "BonChon", tag: "Bestseller", rating: 4.9, img: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=700&q=80", desc: "Double-fried Korean glazed wings coated in delicious savory soy garlic sauce." },
+      { id: 6, name: "Spicy Honey Butter Chicken", price: 299, cat: "Chicken", brand: "BonChon", tag: "Spicy 🔥", rating: 4.8, img: "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=700&q=80", desc: "Crispy chicken glazed with sweet honey, butter, and chili flakes." },
+      { id: 7, name: "Golden Crispy Fried Chicken (2pcs)", price: 189, cat: "Chicken", brand: "BonChon", tag: "Popular", rating: 4.6, img: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=700&q=80", desc: "Juicy golden chicken served with buttery gravy and steamed rice." },
+      { id: 8, name: "Buffalo Garlic Parmesan Tenders", price: 249, cat: "Chicken", brand: "Burger Shack", tag: "New", rating: 4.7, img: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&w=700&q=80", desc: "Boneless chicken strips tossed in creamy garlic parmesan dressing." },
+
+      // ASIAN & NOODLES
+      { id: 9, name: "Tonkotsu Pork Ramen", price: 319, cat: "Asian", brand: "Asian Bowl", tag: "Bestseller", rating: 4.9, img: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=700&q=80", desc: "Rich 12-hour pork broth, chashu pork belly slices, soft-boiled ajitama egg, and wheat noodles." },
+      { id: 10, name: "Mixed Sushi & Sashimi Platter", price: 449, cat: "Asian", brand: "Asian Bowl", tag: "Premium", rating: 4.9, img: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=700&q=80", desc: "Fresh salmon, tuna sashimi, spicy tuna roll, and California maki." },
+      { id: 11, name: "Pork & Chive Dumplings (10pcs)", price: 179, cat: "Asian", brand: "Asian Bowl", tag: "Popular", rating: 4.7, img: "https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=700&q=80", desc: "Steamed pan-fried potstickers served with chili soy dip." },
+      { id: 12, name: "Pad Thai Seafood Noodles", price: 269, cat: "Asian", brand: "Asian Bowl", tag: "Chef Choice", rating: 4.8, img: "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=700&q=80", desc: "Stir-fried rice noodles with prawns, tofu, bean sprouts, crushed peanuts, and lime." },
+
+      // BURGERS & SANDWICHES
+      { id: 13, name: "Double Angus Bacon Cheeseburger", price: 279, cat: "Burgers", brand: "Burger Shack", tag: "Bestseller", rating: 4.9, img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=700&q=80", desc: "Two juicy 100% Angus beef patties, crispy bacon, cheddar, lettuce, and secret shack sauce." },
+      { id: 14, name: "Crispy Spicy Chicken Sandwich", price: 219, cat: "Burgers", brand: "Burger Shack", tag: "Spicy 🔥", rating: 4.8, img: "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=700&q=80", desc: "Fried chicken thigh, spicy coleslaw, jalapenos, and sriracha mayo on a brioche bun." },
+      { id: 15, name: "Truffle Mushroom Swiss Burger", price: 299, cat: "Burgers", brand: "Burger Shack", tag: "Gourmet", rating: 4.9, img: "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=700&q=80", desc: "Sautéed mushrooms, truffle aioli sauce, and melted Swiss cheese on Angus patty." },
+
+      // PASTA
+      { id: 16, name: "Creamy Truffle Carbonara", price: 259, cat: "Pasta", brand: "Pizza Hub", tag: "Bestseller", rating: 4.8, img: "https://images.unsplash.com/photo-1612874742237-6526221588e3?auto=format&fit=crop&w=700&q=80", desc: "Fettuccine in rich cream sauce, bacon bits, parmesan cheese, and truffle oil." },
+      { id: 17, name: "Spaghetti Bolognese Meatballs", price: 229, cat: "Pasta", brand: "Pizza Hub", tag: "Classic", rating: 4.6, img: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=700&q=80", desc: "Slow-cooked beef tomato ragu sauce over spaghetti topped with mozzarella." },
+      { id: 18, name: "Seafood Aglio Olio", price: 289, cat: "Pasta", brand: "Pizza Hub", tag: "Light", rating: 4.7, img: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=700&q=80", desc: "Olive oil, garlic, chili flakes, shrimp, squid, and fresh parsley with linguine." },
+
+      // MILK TEA & DRINKS
+      { id: 19, name: "Boba Brown Sugar Milk Tea", price: 139, cat: "Drinks", brand: "Asian Bowl", tag: "Bestseller", rating: 4.9, img: "https://images.unsplash.com/photo-1558857563-b371033873b8?auto=format&fit=crop&w=700&q=80", desc: "Fresh milk with brown sugar tapioca pearls and cream cheese foam top." },
+      { id: 20, name: "Taro Cheese Cream Boba", price: 149, cat: "Drinks", brand: "Asian Bowl", tag: "Popular", rating: 4.7, img: "https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&w=700&q=80", desc: "Sweet fragrant taro milk tea with chewy black pearls." },
+      { id: 21, name: "Iced Caramel Macchiato", price: 159, cat: "Drinks", brand: "Burger Shack", tag: "Coffee", rating: 4.8, img: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=700&q=80", desc: "Espresso shots, cold milk, and caramel drizzle over ice." },
+
+      // DESSERTS
+      { id: 22, name: "Fluffy Japanese Pancakes", price: 189, cat: "Desserts", brand: "Asian Bowl", tag: "Bestseller", rating: 4.9, img: "https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=700&q=80", desc: "Souffle pancake stack served with maple syrup and whipped butter." },
+      { id: 23, name: "Chocolate Lava Molten Cake", price: 169, cat: "Desserts", brand: "Pizza Hub", tag: "Sweet", rating: 4.8, img: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=700&q=80", desc: "Warm dark chocolate cake with gooey molten center and vanilla ice cream." },
+      { id: 24, name: "Glazed Donut Assortment (6pcs)", price: 210, cat: "Desserts", brand: "Burger Shack", tag: "Popular", rating: 4.7, img: "https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=700&q=80", desc: "Assorted classic glaze, chocolate sprinkle, and Bavarian filled donuts." },
+
+      // SNACKS
+      { id: 25, name: "Loaded Cheese Fries & Bacon", price: 129, cat: "Snacks", brand: "Burger Shack", tag: "Bestseller", rating: 4.8, img: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=700&q=80", desc: "Golden shoestring potato fries smothered in warm cheese sauce and bacon." },
+      { id: 26, name: "Mozzarella Cheese Sticks (5pcs)", price: 149, cat: "Snacks", brand: "Pizza Hub", tag: "Cheesy", rating: 4.7, img: "https://images.unsplash.com/photo-1531749668029-2db88e4276c7?auto=format&fit=crop&w=700&q=80", desc: "Deep-fried breaded mozzarella served with marinara dip." },
+      { id: 27, name: "Korean Cheese Corn Dog", price: 139, cat: "Snacks", brand: "BonChon", tag: "Popular", rating: 4.8, img: "https://images.unsplash.com/photo-1623653387945-2fd25214f8fc?auto=format&fit=crop&w=700&q=80", desc: "Crispy panko batter filled with half hotdog and half stretch mozzarella." }
+    ];
+
+    const categories = [
+      { name: "All", icon: "🍽️" },
+      { name: "Pizza", icon: "🍕" },
+      { name: "Chicken", icon: "🍗" },
+      { name: "Asian", icon: "🍜" },
+      { name: "Burgers", icon: "🍔" },
+      { name: "Pasta", icon: "🍝" },
+      { name: "Drinks", icon: "🧋" },
+      { name: "Desserts", icon: "🍩" },
+      { name: "Snacks", icon: "🍟" }
+    ];
+
+    // App State Management
+    let cart = [];
+    let activeCategory = "All";
+    let activeBrandFilter = null;
+    let currentItemForModal = null;
+    let selectedSizeMultiplier = 1;
+    let selectedAddons = [];
+    let modalQty = 1;
+    let appliedDiscount = 0;
+    let selectedTip = 30;
+    let orderCounter = 101;
+    let currentUser = null;
+    let pastOrders = [];
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      loadUserData();
+      renderCategoryBar();
+      renderProducts(foodProducts);
+      updateCartUI();
+    });
+
+    function loadUserData() {
+      const savedUser = localStorage.getItem('fudzUser');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        updateUserNav();
+      }
+      const savedOrders = localStorage.getItem('fudzPastOrders');
+      if (savedOrders) {
+        pastOrders = JSON.parse(savedOrders);
+      }
+    }
+
+    function updateUserNav() {
+      if (currentUser) {
+        document.getElementById('authActions').classList.add('hidden');
+        document.getElementById('userProfileBtn').classList.remove('hidden');
+        document.getElementById('navUserName').textContent = currentUser.name.split(' ')[0];
+        document.getElementById('profileNameDisplay').textContent = currentUser.name;
+        document.getElementById('profileEmailDisplay').textContent = currentUser.email;
+        document.getElementById('profileAddressInput').value = currentUser.address || '';
+        document.getElementById('profilePoints').textContent = (currentUser.points || 150) + " PTS";
+      } else {
+        document.getElementById('authActions').classList.remove('hidden');
+        document.getElementById('userProfileBtn').classList.add('hidden');
+      }
+    }
+
+    function renderCategoryBar() {
+      const container = document.getElementById('categoryContainer');
+      container.innerHTML = categories.map(c => `
+        <button onclick="filterByCategory('${c.name}')" class="category-btn flex items-center gap-2 px-5 py-2.5 rounded-2xl border transition-all text-xs font-bold whitespace-nowrap ${activeCategory === c.name ? 'bg-brand-500 text-white border-brand-500 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-brand-300'}">
+          <span class="text-base">${c.icon}</span>
+          <span>${c.name}</span>
+        </button>
+      `).join('');
+    }
+
+    function renderProducts(list) {
+      const grid = document.getElementById('productsGrid');
+      const emptyState = document.getElementById('emptyState');
+      
+      document.getElementById('menuCount').textContent = `Showing ${list.length} delicious options`;
+
+      if (list.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      grid.innerHTML = list.map(item => `
+        <div class="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col group relative">
+          <!-- Image Container -->
+          <div class="relative h-48 w-full bg-gray-100 overflow-hidden cursor-pointer" onclick="openItemModal(${item.id})">
+            <img src="${item.img}" alt="${item.name}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+            <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-brand-600 text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-sm">
+              ${item.tag}
+            </span>
+            <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1">
+              <i class="fa-solid fa-star text-amber-400"></i>
+              <span>${item.rating}</span>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="p-5 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-brand-500 mb-0.5">${item.brand} • ${item.cat}</div>
+              <h4 onclick="openItemModal(${item.id})" class="font-extrabold text-sm text-gray-900 group-hover:text-brand-500 transition cursor-pointer line-clamp-1">${item.name}</h4>
+              <p class="text-xs text-gray-500 line-clamp-2 mt-1 leading-relaxed">${item.desc}</p>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] text-gray-400 block font-semibold">Price starts</span>
+                <span class="text-base font-black text-gray-900">₱${item.price.toFixed(2)}</span>
+              </div>
+
+              <button onclick="openItemModal(${item.id})" class="bg-brand-50 hover:bg-brand-500 text-brand-600 hover:text-white font-extrabold px-3.5 py-2 rounded-2xl transition text-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Filter Logic
+    function filterByCategory(cat) {
+      activeCategory = cat;
+      activeBrandFilter = null;
+      document.getElementById('menuTitle').textContent = cat === "All" ? "All Food Items" : `${cat} Menu`;
+      renderCategoryBar();
+      applyFiltersAndSort();
+    }
+
+    function filterByBrand(brand) {
+      activeBrandFilter = brand;
+      document.getElementById('menuTitle').textContent = `${brand} Specialties`;
+      applyFiltersAndSort();
+    }
+
+    function resetFilters() {
+      activeCategory = "All";
+      activeBrandFilter = null;
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchInputMobile').value = '';
+      document.getElementById('menuTitle').textContent = "All Food Items";
+      renderCategoryBar();
+      applyFiltersAndSort();
+    }
+
+    function handleSearch() {
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      filterBySearchQuery(q);
+    }
+
+    function handleSearchMobile() {
+      const q = document.getElementById('searchInputMobile').value.toLowerCase().trim();
+      filterBySearchQuery(q);
+    }
+
+    function filterBySearchQuery(q) {
+      let filtered = foodProducts;
+      if (q) {
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q));
+      }
+      renderProducts(filtered);
+    }
+
+    function applyFiltersAndSort() {
+      let result = foodProducts;
+      if (activeCategory !== "All") {
+        result = result.filter(p => p.cat === activeCategory);
+      }
+      if (activeBrandFilter) {
+        result = result.filter(p => p.brand === activeBrandFilter);
+      }
+
+      const sortVal = document.getElementById('sortSelect').value;
+      if (sortVal === "price-low") result.sort((a,b) => a.price - b.price);
+      else if (sortVal === "price-high") result.sort((a,b) => b.price - a.price);
+      else if (sortVal === "rating") result.sort((a,b) => b.rating - a.rating);
+
+      renderProducts(result);
+    }
+
+    function sortProducts() {
+      applyFiltersAndSort();
+    }
+
+    function scrollToMenu() {
+      document.getElementById('menuSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function openItemModal(id) {
+      const item = foodProducts.find(x => x.id === id);
+      if (!item) return;
+
+      currentItemForModal = item;
+      selectedSizeMultiplier = 1;
+      selectedAddons = [];
+      modalQty = 1;
+
+      document.getElementById('modalItemImg').src = item.img;
+      document.getElementById('modalItemName').textContent = item.name;
+      document.getElementById('modalItemDesc').textContent = item.desc;
+      document.getElementById('modalItemBasePrice').textContent = `₱${item.price.toFixed(2)}`;
+      document.getElementById('modalItemBadge').textContent = item.tag;
+      document.getElementById('modalItemQty').textContent = modalQty;
+      document.getElementById('itemNotesInput').value = '';
+
+      // Size options
+      const sizeContainer = document.getElementById('sizeOptionsContainer');
+      sizeContainer.innerHTML = `
+        <button onclick="selectSize(1, this)" class="size-btn p-2.5 border-2 border-brand-500 bg-brand-50 text-brand-600 rounded-2xl font-extrabold text-xs">
+          Regular (1x)
+        </button>
+        <button onclick="selectSize(1.3, this)" class="size-btn p-2.5 border-2 border-gray-200 text-gray-700 rounded-2xl font-extrabold text-xs hover:border-gray-300">
+          Large (+30%)
+        </button>
+        <button onclick="selectSize(1.6, this)" class="size-btn p-2.5 border-2 border-gray-200 text-gray-700 rounded-2xl font-extrabold text-xs hover:border-gray-300">
+          Family (+60%)
+        </button>
+      `;
+
+      // Addons options
+      const addonsContainer = document.getElementById('addonsContainer');
+      addonsContainer.innerHTML = `
+        <label class="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer text-xs font-bold text-gray-700">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" onchange="toggleAddon('Extra Mozzarella Cheese', 35, this)" class="accent-brand-500">
+            <span>Extra Mozzarella Cheese</span>
+          </div>
+          <span class="text-brand-600">+₱35.00</span>
+        </label>
+        <label class="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer text-xs font-bold text-gray-700">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" onchange="toggleAddon('Crispy Bacon Strips', 45, this)" class="accent-brand-500">
+            <span>Crispy Bacon Strips</span>
+          </div>
+          <span class="text-brand-600">+₱45.00</span>
+        </label>
+        <label class="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer text-xs font-bold text-gray-700">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" onchange="toggleAddon('Special Garlic Dip', 25, this)" class="accent-brand-500">
+            <span>Special Garlic Sauce Dip</span>
+          </div>
+          <span class="text-brand-600">+₱25.00</span>
+        </label>
+      `;
+
+      updateModalCalculatedPrice();
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function closeItemModal() {
+      document.getElementById('itemModal').classList.add('hidden');
+    }
+
+    function selectSize(multiplier, btn) {
+      selectedSizeMultiplier = multiplier;
+      document.querySelectorAll('.size-btn').forEach(b => {
+        b.className = 'size-btn p-2.5 border-2 border-gray-200 text-gray-700 rounded-2xl font-extrabold text-xs hover:border-gray-300';
+      });
+      btn.className = 'size-btn p-2.5 border-2 border-brand-500 bg-brand-50 text-brand-600 rounded-2xl font-extrabold text-xs';
+      updateModalCalculatedPrice();
+    }
+
+    function toggleAddon(name, price, checkbox) {
+      if (checkbox.checked) {
+        selectedAddons.push({ name, price });
+      } else {
+        selectedAddons = selectedAddons.filter(a => a.name !== name);
+      }
+      updateModalCalculatedPrice();
+    }
+
+    function adjustModalQty(delta) {
+      modalQty = Math.max(1, modalQty + delta);
+      document.getElementById('modalItemQty').textContent = modalQty;
+      updateModalCalculatedPrice();
+    }
+
+    function updateModalCalculatedPrice() {
+      if (!currentItemForModal) return;
+      const basePlusSize = currentItemForModal.price * selectedSizeMultiplier;
+      const addonsTotal = selectedAddons.reduce((s, a) => s + a.price, 0);
+      const singlePrice = basePlusSize + addonsTotal;
+      const grandTotal = singlePrice * modalQty;
+
+      document.getElementById('modalCalculatedTotal').textContent = `₱${grandTotal.toFixed(2)}`;
+    }
+
+    function confirmAddToCart() {
+      const notes = document.getElementById('itemNotesInput').value.trim();
+      const basePlusSize = currentItemForModal.price * selectedSizeMultiplier;
+      const addonsTotal = selectedAddons.reduce((s, a) => s + a.price, 0);
+      const finalUnitPrice = basePlusSize + addonsTotal;
+
+      const cartItem = {
+        cartId: Date.now() + Math.random(),
+        productId: currentItemForModal.id,
+        name: currentItemForModal.name,
+        price: finalUnitPrice,
+        img: currentItemForModal.img,
+        qty: modalQty,
+        sizeMult: selectedSizeMultiplier,
+        addons: [...selectedAddons],
+        notes: notes
+      };
+
+      cart.push(cartItem);
+      updateCartUI();
+      closeItemModal();
+      showToast(`Added ${modalQty}x ${currentItemForModal.name} to cart!`);
+    }
+
+    function toggleCartDrawer(show) {
+      const drawer = document.getElementById('cartDrawer');
+      if (show) {
+        drawer.classList.remove('pointer-events-none', 'opacity-0');
+        drawer.querySelector('.translate-x-full')?.classList.remove('translate-x-full');
+      } else {
+        drawer.classList.add('pointer-events-none', 'opacity-0');
+        drawer.children[1].classList.add('translate-x-full');
+      }
+    }
+
+    function updateCartUI() {
+      const count = cart.reduce((sum, item) => sum + item.qty, 0);
+      document.getElementById('cartBadge').textContent = count;
+
+      const list = document.getElementById('cartItemsList');
+      const footer = document.getElementById('cartFooter');
+
+      if (cart.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-16 text-gray-400">
+            <div class="text-6xl mb-2">🛒</div>
+            <p class="font-bold text-gray-700">Your Cart is Empty</p>
+            <p class="text-xs text-gray-400 mt-1">Browse our menu and pick something delicious!</p>
+          </div>
+        `;
+        document.getElementById('cartTotalPreview').textContent = '₱0.00';
+        footer.classList.add('hidden');
+        return;
+      }
+
+      footer.classList.remove('hidden');
+
+      list.innerHTML = cart.map(item => `
+        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200 flex gap-3 items-center">
+          <img src="${item.img}" class="w-16 h-16 rounded-xl object-cover">
+          <div class="flex-1 min-w-0">
+            <h5 class="font-extrabold text-xs text-gray-900 truncate">${item.name}</h5>
+            <p class="text-[10px] text-brand-600 font-bold">₱${item.price.toFixed(2)} each</p>
+            ${item.addons.length > 0 ? `<p class="text-[9px] text-gray-400">Addons: ${item.addons.map(a=>a.name).join(', ')}</p>` : ''}
+            ${item.notes ? `<p class="text-[9px] text-amber-600 italic">Note: ${item.notes}</p>` : ''}
+          </div>
+          
+          <div class="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-gray-200">
+            <button onclick="changeCartQty(${item.cartId}, -1)" class="w-5 h-5 font-bold text-xs text-gray-600">-</button>
+            <span class="text-xs font-extrabold w-4 text-center">${item.qty}</span>
+            <button onclick="changeCartQty(${item.cartId}, 1)" class="w-5 h-5 font-bold text-xs text-gray-600">+</button>
+          </div>
+        </div>
+      `).join('');
+
+      calculateCartSummary();
+    }
+
+    function changeCartQty(cartId, delta) {
+      const idx = cart.findIndex(x => x.cartId === cartId);
+      if (idx !== -1) {
+        cart[idx].qty += delta;
+        if (cart[idx].qty <= 0) {
+          cart.splice(idx, 1);
+        }
+      }
+      updateCartUI();
+    }
+
+    function setTip(amount) {
+      selectedTip = amount;
+      document.querySelectorAll('.tip-btn').forEach(btn => {
+        btn.className = 'tip-btn py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white text-gray-700';
+      });
+      event.target.className = 'tip-btn py-1.5 text-xs font-bold rounded-lg border border-brand-500 bg-brand-50 text-brand-600';
+      calculateCartSummary();
+    }
+
+    function applyPromoCode() {
+      const code = document.getElementById('promoInput').value.trim().toUpperCase();
+      if (code === 'PENGUIN50') {
+        appliedDiscount = 50;
+        showToast('Promo PENGUIN50 applied! ₱50 OFF');
+      } else if (code === 'WELCOME20') {
+        const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+        appliedDiscount = subtotal * 0.20;
+        showToast('Promo WELCOME20 applied! 20% OFF');
+      } else {
+        appliedDiscount = 0;
+        showToast('Invalid promo code. Try PENGUIN50', 'error');
+      }
+      calculateCartSummary();
+    }
+
+    function calculateCartSummary() {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const deliveryFee = 49;
+      const grandTotal = Math.max(0, subtotal + deliveryFee + selectedTip - appliedDiscount);
+
+      document.getElementById('summarySubtotal').textContent = `₱${subtotal.toFixed(2)}`;
+      document.getElementById('summaryDelivery').textContent = `₱${deliveryFee.toFixed(2)}`;
+      document.getElementById('summaryTip').textContent = `₱${selectedTip.toFixed(2)}`;
+      document.getElementById('cartTotalPreview').textContent = `₱${grandTotal.toFixed(2)}`;
+
+      const discRow = document.getElementById('discountRow');
+      if (appliedDiscount > 0) {
+        discRow.classList.remove('hidden');
+        document.getElementById('summaryDiscount').textContent = `-₱${appliedDiscount.toFixed(2)}`;
+      } else {
+        discRow.classList.add('hidden');
+      }
+
+      document.getElementById('summaryGrandTotal').textContent = `₱${grandTotal.toFixed(2)}`;
+    }
+
+    function proceedToCheckout() {
+      if (cart.length === 0) return;
+      toggleCartDrawer(false);
+
+      const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+      const fees = 49 + selectedTip - appliedDiscount;
+      const grandTotal = subtotal + fees;
+
+      document.getElementById('checkoutSubtotal').textContent = `₱${subtotal.toFixed(2)}`;
+      document.getElementById('checkoutFees').textContent = `₱${fees.toFixed(2)}`;
+      document.getElementById('checkoutGrandTotal').textContent = `₱${grandTotal.toFixed(2)}`;
+
+      if (currentUser) {
+        document.getElementById('checkoutAddress').value = currentUser.address || '';
+        document.getElementById('checkoutPhone').value = currentUser.phone || '';
+      }
+
+      document.getElementById('checkoutModal').classList.remove('hidden');
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById('checkoutModal').classList.add('hidden');
+    }
+
+    function placeOrder() {
+      const addr = document.getElementById('checkoutAddress').value.trim();
+      const phone = document.getElementById('checkoutPhone').value.trim();
+
+      if (!addr || !phone) {
+        showToast('Please fill in your delivery address and phone number', 'error');
+        return;
+      }
+
+      const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+      const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+      const grandTotal = subtotal + 49 + selectedTip - appliedDiscount;
+
+      const orderObj = {
+        id: 'PENG-' + orderCounter++,
+        items: [...cart],
+        address: addr,
+        phone: phone,
+        payment: paymentMethod,
+        total: grandTotal,
+        date: new Date().toLocaleString()
+      };
+
+      pastOrders.unshift(orderObj);
+      localStorage.setItem('fudzPastOrders', JSON.stringify(pastOrders));
+
+      if (currentUser) {
+        currentUser.points = (currentUser.points || 150) + 20;
+        localStorage.setItem('fudzUser', JSON.stringify(currentUser));
+        updateUserNav();
+      }
+
+      cart = [];
+      appliedDiscount = 0;
+      updateCartUI();
+      closeCheckoutModal();
+
+      openLiveTracker(orderObj.id);
+      showToast('Order Placed Successfully! 🐧');
+    }
+
+    let trackerInterval = null;
+
+    function openLiveTracker(orderId) {
+      document.getElementById('trackerOrderId').textContent = orderId;
+      document.getElementById('trackerModal').classList.remove('hidden');
+
+      // Reset step styles
+      for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById(`step${i}`);
+        const icon = el.querySelector('.step-icon');
+        if (icon) {
+          icon.className = 'step-icon absolute -left-[31px] top-0 w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs flex items-center justify-center';
+          icon.textContent = i;
+        }
+      }
+
+      // Simulate steps progression
+      let currentStep = 2;
+      if (trackerInterval) clearInterval(trackerInterval);
+
+      trackerInterval = setInterval(() => {
+        if (currentStep <= 5) {
+          const el = document.getElementById(`step${currentStep}`);
+          const icon = el.querySelector('.step-icon');
+          if (icon) {
+            icon.className = 'step-icon absolute -left-[31px] top-0 w-6 h-6 rounded-full bg-brand-500 text-white text-xs flex items-center justify-center shadow';
+            icon.textContent = '✓';
+          }
+          currentStep++;
+        } else {
+          clearInterval(trackerInterval);
+        }
+      }, 4000);
+    }
+
+    function closeTrackerModal() {
+      document.getElementById('trackerModal').classList.add('hidden');
+      if (trackerInterval) clearInterval(trackerInterval);
+    }
+
+    let authMode = "login";
+
+    function openAuthModal(mode) {
+      authMode = mode;
+      updateAuthModalUI();
+      document.getElementById('authModal').classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    function toggleAuthMode() {
+      authMode = authMode === "login" ? "register" : "login";
+      updateAuthModalUI();
+    }
+
+    function updateAuthModalUI() {
+      const isReg = authMode === "register";
+      document.getElementById('authTitle').textContent = isReg ? "Create Fudz Penguin Account" : "Welcome Back";
+      document.getElementById('authSubtitle').textContent = isReg ? "Register to save addresses and earn points." : "Sign in to manage your orders.";
+      document.getElementById('nameFieldGroup').className = isReg ? "block" : "hidden";
+      document.getElementById('phoneFieldGroup').className = isReg ? "block" : "hidden";
+      document.getElementById('authSubmitBtn').textContent = isReg ? "Register" : "Sign In";
+      document.getElementById('authSwitchPrompt').textContent = isReg ? "Already have an account?" : "Don't have an account?";
+      document.getElementById('authSwitchBtn').textContent = isReg ? "Sign In" : "Register Now";
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const name = document.getElementById('authName').value.trim() || email.split('@')[0];
+      const phone = document.getElementById('authPhone').value.trim() || "09170000000";
+
+      currentUser = {
+        name: name,
+        email: email,
+        phone: phone,
+        address: "Block 10 Lot 5 Penguin Ave, Metro Manila",
+        points: 150
+      };
+
+      localStorage.setItem('fudzUser', JSON.stringify(currentUser));
+      updateUserNav();
+      closeAuthModal();
+      showToast(authMode === "register" ? 'Account created! Welcome to Fudz Penguin 🎉' : 'Signed in successfully!');
+    }
+
+    function logout() {
+      localStorage.removeItem('fudzUser');
+      currentUser = null;
+      updateUserNav();
+      showToast('Signed out successfully.');
+    }
+
+    function openProfileModal() {
+      if (!currentUser) return;
+      document.getElementById('profileModal').classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.add('hidden');
+    }
+
+    function saveProfileAddress() {
+      if (!currentUser) return;
+      currentUser.address = document.getElementById('profileAddressInput').value.trim();
+      localStorage.setItem('fudzUser', JSON.stringify(currentUser));
+      closeProfileModal();
+      showToast('Delivery address saved to profile!');
+    }
+
+    // Past Orders Modal
+    function openOrderHistoryModal() {
+      const container = document.getElementById('historyList');
+      if (pastOrders.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-gray-400 text-xs">
+            <p class="font-bold text-gray-600">No Past Orders Found</p>
+            <p>Your previous delicious orders will be listed here.</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = pastOrders.map(order => `
+          <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 text-xs space-y-2">
+            <div class="flex justify-between items-center font-bold">
+              <span class="text-brand-600">${order.id}</span>
+              <span class="text-gray-400 font-normal">${order.date}</span>
+            </div>
+            <div class="text-gray-600">
+              ${order.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+              <span class="font-extrabold text-gray-900">Total: ₱${order.total.toFixed(2)}</span>
+              <button onclick="openLiveTracker('${order.id}')" class="bg-brand-500 text-white font-bold px-3 py-1 rounded-xl text-[10px]">Track</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      document.getElementById('orderHistoryModal').classList.remove('hidden');
+    }
+
+    function closeOrderHistoryModal() {
+      document.getElementById('orderHistoryModal').classList.add('hidden');
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const bgColor = type === 'error' ? 'bg-red-600' : 'bg-gray-900';
+      toast.className = `${bgColor} text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 pointer-events-auto transition transform translate-y-2`;
+      toast.innerHTML = `
+        <span>${type === 'error' ? '⚠️' : '🐧'}</span>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
